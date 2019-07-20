@@ -1,0 +1,51 @@
+version: "3.7"
+
+services:
+  db:
+    image: postgres:12-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  web:
+    restart: always
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/mp3_converter
+      - media:/mp3_converter/media
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    links:
+      - db
+      - redis
+      - celery
+    depends_on:
+      - db
+  redis:
+    image: redis:5.0.5
+    restart: always
+    expose:
+      - "6379"
+  celery:
+    build: .
+    command: celery -A config worker -l info
+    volumes:
+      - .:/mp3_converter
+    env_file:
+      - .env
+    links:
+      - db
+      - redis
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  media:
+  redisdata:
